@@ -65,12 +65,12 @@ Training on financial ratio data over 50 epochs achieved:
 
 | Metric | Value |
 |--------|-------|
-| Final Accuracy | 85.1% |
+| Final Accuracy | 89.1% |
 | Best Loss | 0.394 |
 | Classification Loss | 0.394 |
 | Halt Regularization | 3.2e-5 |
 
-The model improved from 66% accuracy at epoch 24 to 85% accuracy by epoch 41, demonstrating effective learning of the hierarchical representation.
+The model improved from 66% accuracy at epoch 24 to 89% accuracy by epoch 41, demonstrating effective learning of the hierarchical representation.
 
 ## What the Code Does
 
