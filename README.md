@@ -1,10 +1,14 @@
+<<<<<<< HEAD
 # Herald: Hierarchical Embedding and Reasoning for Adaptive Long-short Trade Detection
+=======
+# HERALD: Hierarchical Retrieval-Augmented Learning with Discretized features
+>>>>>>> d6df1a6 (docs: update project name from Fin-HRM to HERALD)
 
 A hierarchical reasoning architecture adapted for financial time series classification. This implementation combines Vector Quantized Variational Autoencoders (VQ-VAE) for pattern tokenization with a dual-module reasoning system that processes information at different temporal scales.
 
 ## Architecture Overview
 
-![Fin-HRM Data Pipeline](./pipeline.jpg)
+![HERALD Data Pipeline](./pipeline.jpg)
 **Acknowledge**: the figure is created by using Gemini 3 thinking
 
 The system consists of three main components:
