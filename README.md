@@ -1,4 +1,4 @@
-# Fin-HRM: Financial Hierarchical Reasoning Model
+# Herald: Hierarchical Embedding and Reasoning for Adaptive Long-short Trade Detection
 
 A hierarchical reasoning architecture adapted for financial time series classification. This implementation combines Vector Quantized Variational Autoencoders (VQ-VAE) for pattern tokenization with a dual-module reasoning system that processes information at different temporal scales.
 
