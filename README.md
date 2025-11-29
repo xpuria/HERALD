@@ -63,18 +63,16 @@ The modules interact through bidirectional projections:
 
 **State Combination**: Final predictions combine both module states through a learned mixer, then pass through a classification head producing UP/DOWN probabilities.
 
-## Training Results
+## Performance Comparison
 
-Training on financial ratio data over 50 epochs achieved:
+The following table compares the performance of Fin-HRM (both Standard and LoRA-adapted) against traditional LSTM and Transformer baselines.
 
-| Metric | Value |
-|--------|-------|
-| Final Accuracy | 89.1% |
-| Best Loss | 0.394 |
-| Classification Loss | 0.394 |
-| Halt Regularization | 3.2e-5 |
-
-The model improved from 66% accuracy at epoch 24 to 89% accuracy by epoch 41, demonstrating effective learning of the hierarchical representation.
+| Model | Params | Loss | Accuracy | Precision | Recall | F1 Score | MCC |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Fin-HRM (LoRA)** | **1,272,451** | **0.4111** | **80.45%** | **82.24%** | **80.40%** | **81.31%** | **0.6084** |
+| **Fin-HRM (Std)** | 1,186,435 | 0.4886 | 74.89% | 75.40% | 77.95% | 76.66% | 0.4953 |
+| **Transformer** | 876,035 | 0.5997 | 66.37% | 64.80% | 79.72% | 71.49% | 0.3256 |
+| **LSTM** | 615,171 | 0.6429 | 61.30% | 59.38% | 84.94% | 69.90% | 0.2291 |
 
 ## What the Code Does
 
@@ -215,4 +213,3 @@ This design allows the H-module to aggregate information across multiple L-modul
 ## License
 
 See LICENSE file for details.
-
