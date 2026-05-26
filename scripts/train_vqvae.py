@@ -14,22 +14,32 @@ import sys
 sys.path.append('.')
 
 from src.data.dataset import FinancialDataset
+from src.data.splits import temporal_split
 from src.models.vq_vae import VQVAE
 from src.utils import set_seed, setup_logging
+import pandas as pd
 
 
 def train(args):
     set_seed(args.seed)
     setup_logging(os.path.join(args.checkpoint_dir, "train.log"))
-    
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+
+    # restrict vq-vae fitting to the train slice — never see val/test data.
+    n = len(pd.read_csv(args.data_path))
+    embargo = max(args.preprocessing_window, args.seq_len)
+    split = temporal_split(n, train_frac=args.train_frac, val_frac=args.val_frac, embargo=embargo)
+    print(f"vq-vae train range: [{split.train.start}, {split.train.stop}) of {n}")
+
     dataset = FinancialDataset(
         csv_path=args.data_path,
         seq_len=args.seq_len,
         mode='train',
         use_zigzag=False,
-        target_col=args.target_col
+        target_col=args.target_col,
+        preprocessing_window=args.preprocessing_window,
+        index_range=(split.train.start, split.train.stop),
     )
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     
@@ -93,6 +103,9 @@ if __name__ == "__main__":
     parser.add_argument("--save_every", type=int, default=1)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--num_workers", type=int, default=0)
-    
+    parser.add_argument("--preprocessing_window", type=int, default=30)
+    parser.add_argument("--train_frac", type=float, default=0.70)
+    parser.add_argument("--val_frac", type=float, default=0.15)
+
     args = parser.parse_args()
     train(args)
