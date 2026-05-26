@@ -1,0 +1,2 @@
+Model,Params,TestN,Loss,Accuracy,Precision,Recall,F1,MCC
+PatchHRM-Aux,"1,119,491",736,0.6896,0.6101,0.6289,0.6624,0.6452,0.2134
