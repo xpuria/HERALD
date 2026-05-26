@@ -16,80 +16,107 @@ from .zigzag import zigzag
 
 
 class FinancialDataset(Dataset):
-    """dataset for vq-vae training with preprocessed windows"""
-    
-    def __init__(self, 
-                 csv_path: str, 
-                 seq_len: int = 64, 
+    """dataset for vq-vae training with preprocessed windows.
+
+    `index_range` (start, stop) restricts windows to a chronological slice.
+    a window with start index i covers [i, i + seq_len); windows are emitted
+    only if fully contained in the slice. preprocessing is run on the full
+    series first (rolling z-score uses past values only, so this is causal),
+    but windows outside the slice are not exposed.
+    """
+
+    def __init__(self,
+                 csv_path: str,
+                 seq_len: int = 64,
                  mode: str = 'train',
                  preprocessing_window: int = 30,
                  zigzag_deviation: float = 0.01,
                  use_zigzag: bool = True,
-                 target_col: str = 'Close'):
+                 target_col: str = 'Close',
+                 index_range: Optional[Tuple[int, int]] = None):
         self.seq_len = seq_len
         self.mode = mode
-        
+
         df = pd.read_csv(csv_path)
         if target_col not in df.columns:
             raise ValueError(f"target column '{target_col}' not found. available: {list(df.columns)}")
         prices = df[target_col].values
-        
+
         self.features = preprocess_pipeline(prices, window=preprocessing_window)
-        
+
         if use_zigzag:
             _, self.labels = zigzag(prices, deviation_pct=zigzag_deviation)
         else:
             self.labels = np.zeros(len(prices))
-        
-        self.n_samples = len(self.features) - seq_len
+
+        n = len(self.features)
+        if index_range is None:
+            self._start, self._stop = 0, n
+        else:
+            self._start, self._stop = index_range
+            self._start = max(0, self._start)
+            self._stop = min(n, self._stop)
+        last_start = self._stop - seq_len
+        self.n_samples = max(0, last_start - self._start + 1)
         
     def __len__(self):
         return max(0, self.n_samples)
     
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        x = self.features[idx : idx + self.seq_len]
-        y = self.labels[idx : idx + self.seq_len]
-        
+        base = self._start + idx
+        x = self.features[base : base + self.seq_len]
+        y = self.labels[base : base + self.seq_len]
+
         x_tensor = torch.tensor(x, dtype=torch.float32).unsqueeze(0)
         y_tensor = torch.tensor(y, dtype=torch.long)
-        
+
         return x_tensor, y_tensor
 
 
 class HRMDataset(Dataset):
     """dataset for hrm training with vq-vae tokenization (64 -> 16 tokens)"""
     
-    def __init__(self, 
-                 csv_path: str, 
+    def __init__(self,
+                 csv_path: str,
                  vqvae_model: Any,
-                 seq_len: int = 64, 
+                 seq_len: int = 64,
                  preprocessing_window: int = 30,
                  zigzag_deviation: float = 0.01,
                  device: str = 'cpu',
-                 target_col: str = 'Close'):
+                 target_col: str = 'Close',
+                 index_range: Optional[Tuple[int, int]] = None):
         self.seq_len = seq_len
         self.device = device
-        
+
         df = pd.read_csv(csv_path)
         if target_col not in df.columns:
             raise ValueError(f"target column '{target_col}' not found.")
         prices = df[target_col].values
         features = preprocess_pipeline(prices, window=preprocessing_window)
         _, labels = zigzag(prices, deviation_pct=zigzag_deviation)
-        
+
         self.features = features
         self.labels = labels
         self.vqvae = vqvae_model
         self.vqvae.eval()
-        
-        self.n_samples = len(self.features) - seq_len
+
+        n = len(self.features)
+        if index_range is None:
+            self._start, self._stop = 0, n
+        else:
+            self._start, self._stop = index_range
+            self._start = max(0, self._start)
+            self._stop = min(n, self._stop)
+        last_start = self._stop - seq_len
+        self.n_samples = max(0, last_start - self._start + 1)
 
     def __len__(self):
         return max(0, self.n_samples)
     
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        x = self.features[idx : idx + self.seq_len]
-        y = self.labels[idx : idx + self.seq_len]
+        base = self._start + idx
+        x = self.features[base : base + self.seq_len]
+        y = self.labels[base : base + self.seq_len]
         
         x_tensor = torch.tensor(x, dtype=torch.float32).view(1, 1, -1).to(self.device)
         
@@ -116,12 +143,13 @@ class HRMDataset(Dataset):
         all_labels = []
         
         step = 64
-        total_len = len(self.features)
+        total_len = self._stop
+        start = self._start
         batch_size = 32
-        
-        print("tokenizing entire dataset...")
-        
-        for i in range(0, total_len - 64, step * batch_size):
+
+        print(f"tokenizing range [{start}, {total_len})...")
+
+        for i in range(start, total_len - 64, step * batch_size):
             batch_x = []
             batch_y = []
             
